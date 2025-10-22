@@ -14,6 +14,35 @@
       background: radial-gradient(circle, #00bfff, #000);
       color: white;
       font-family: "Poppins", sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Logo container positions */
+    .logo-left,
+    .logo-right {
+      position: absolute;
+      top: 20px;
+      width: 80px;
+      height: 80px;
+      border-radius: 15px;
+      object-fit: cover;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .logo-left {
+      left: 25px;
+    }
+
+    .logo-right {
+      right: 25px;
+    }
+
+    .logo-left:hover,
+    .logo-right:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 191, 255, 0.6);
     }
 
     .clock {
@@ -74,20 +103,25 @@
       color: white;
       cursor: pointer;
       font-size: 16px;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease, transform 0.1s ease;
     }
 
     button:hover {
       background: #0091cc;
+      transform: scale(1.03);
     }
 
     h2 {
       margin: 0;
-      font-size: 28px;
-      color: #00ff88;
+      font-size: 100px;
+      background: #ffffff;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
     }
 
     h1 {
+      font-size: 50px;
       margin-bottom: 10px;
       color: white;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
@@ -95,6 +129,10 @@
   </style>
 </head>
 <body>
+  <!-- Top Logos -->
+  <img src="college.png" alt="College Logo" class="logo-left" />
+  <img src="image.png" alt="Club Logo" class="logo-right" />
+
   <h1>Auction Clock</h1>
 
   <div class="clock">
@@ -102,14 +140,12 @@
     <div class="center-dot"></div>
   </div>
 
-  <h2 id="current-price">₹0.00</h2>
+  <h2 id="current-price">₹0 Cr</h2>
 
   <div class="auction-controls">
-    <input type="number" id="startAmount" placeholder="Enter start amount" />
-    <input type="number" id="duration" placeholder="Enter duration (seconds)" />
+    <input type="number" id="startAmount" placeholder="Enter start amount (in Cr)" />
     <div>
-      <button id="startBtn">Start</button>
-      <button id="pauseBtn">Pause</button>
+      <button id="toggleBtn">Start</button>
       <button id="resetBtn">Reset</button>
     </div>
   </div>
@@ -117,33 +153,61 @@
   <script>
     const hand = document.getElementById("hand");
     const priceDisplay = document.getElementById("current-price");
+    const toggleBtn = document.getElementById("toggleBtn");
 
     let startAmount = 0;
-    let duration = 0;
+    const duration = 30; // seconds
     let startTime = null;
-    let paused = false;
+    let paused = true;
     let pauseStart = 0;
     let elapsedPaused = 0;
     let interval = null;
+    let started = false;
+
+    function toggleAuction() {
+      if (!started) {
+        startAuction();
+        started = true;
+        paused = false;
+        toggleBtn.textContent = "Pause";
+      } else {
+        if (paused) {
+          resumeAuction();
+          toggleBtn.textContent = "Pause";
+        } else {
+          pauseAuction();
+          toggleBtn.textContent = "Resume";
+        }
+      }
+    }
 
     function startAuction() {
       const amountInput = document.getElementById("startAmount");
-      const durationInput = document.getElementById("duration");
-
       startAmount = parseFloat(amountInput.value);
-      duration = parseFloat(durationInput.value);
 
-      if (isNaN(startAmount) || isNaN(duration) || startAmount <= 0 || duration <= 0) {
-        alert("Enter valid positive values for both amount and duration!");
+      if (isNaN(startAmount) || startAmount <= 0) {
+        alert("Enter a valid positive start amount!");
+        started = false;
+        toggleBtn.textContent = "Start";
         return;
       }
 
       startTime = Date.now();
-      paused = false;
       elapsedPaused = 0;
+      paused = false;
 
       if (interval) clearInterval(interval);
       interval = setInterval(updateAuction, 50);
+    }
+
+    function resumeAuction() {
+      paused = false;
+      elapsedPaused += Date.now() - pauseStart;
+    }
+
+    function pauseAuction() {
+      paused = true;
+      pauseStart = Date.now();
     }
 
     function updateAuction() {
@@ -151,42 +215,40 @@
 
       const elapsed = (Date.now() - startTime - elapsedPaused) / 1000;
       const progress = Math.min(elapsed / duration, 1);
-
       const currentPrice = Math.max(0, startAmount * (1 - progress));
-      priceDisplay.textContent = `₹${currentPrice.toFixed(2)} Cr`;
 
-      // Hand starts at 12 (0°) and completes full 360° clockwise
-      const rotation = 360 * progress;
-      hand.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
+      priceDisplay.textContent = `₹${Math.floor(currentPrice)} Cr`;
+      hand.style.transform = `translate(-50%, -100%) rotate(${360 * progress}deg)`;
 
       if (progress >= 1) {
         clearInterval(interval);
-      }
-    }
-
-    function pauseAuction() {
-      if (!paused) {
+        toggleBtn.textContent = "Start";
+        started = false;
         paused = true;
-        pauseStart = Date.now();
-      } else {
-        paused = false;
-        elapsedPaused += Date.now() - pauseStart;
       }
     }
 
     function resetAuction() {
       clearInterval(interval);
-      priceDisplay.textContent = "₹0.00";
+      priceDisplay.textContent = "₹0 Cr";
       hand.style.transform = "translate(-50%, -100%) rotate(0deg)";
       startAmount = 0;
-      duration = 0;
-      paused = false;
+      paused = true;
+      started = false;
+      toggleBtn.textContent = "Start";
     }
 
-    document.getElementById("startBtn").addEventListener("click", startAuction);
-    document.getElementById("pauseBtn").addEventListener("click", pauseAuction);
+    // Event listeners
+    toggleBtn.addEventListener("click", toggleAuction);
     document.getElementById("resetBtn").addEventListener("click", resetAuction);
+
+    // Spacebar control
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault(); // prevent page scroll
+        toggleAuction();
+      }
+    });
   </script>
 </body>
 </html>
-
