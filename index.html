@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auction Clock</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: radial-gradient(circle, #00bfff, #000);
+      color: white;
+      font-family: "Poppins", sans-serif;
+    }
+
+    .clock {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      border: 6px solid white;
+      border-radius: 50%;
+      margin: 30px 0;
+      background: #111;
+    }
+
+    .hand {
+      position: absolute;
+      background: #00bfff;
+      top: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+      transform: translate(-50%, -100%) rotate(0deg);
+      border-radius: 5px;
+      width: 4px;
+      height: 100px;
+      box-shadow: 0 0 10px #00bfff;
+    }
+
+    .center-dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .auction-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input {
+      padding: 6px 8px;
+      border-radius: 5px;
+      border: none;
+      outline: none;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background: #00bfff;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #0091cc;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 28px;
+      color: #00ff88;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <h1>Auction Clock</h1>
+
+  <div class="clock">
+    <div class="hand" id="hand"></div>
+    <div class="center-dot"></div>
+  </div>
+
+  <h2 id="current-price">$0.00</h2>
+
+  <div class="auction-controls">
+    <input type="number" id="startAmount" placeholder="Enter start amount" />
+    <input type="number" id="duration" placeholder="Enter duration (seconds)" />
+    <div>
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    const hand = document.getElementById("hand");
+    const priceDisplay = document.getElementById("current-price");
+
+    let startAmount = 0;
+    let duration = 0;
+    let startTime = null;
+    let paused = false;
+    let pauseStart = 0;
+    let elapsedPaused = 0;
+    let interval = null;
+
+    function startAuction() {
+      const amountInput = document.getElementById("startAmount");
+      const durationInput = document.getElementById("duration");
+
+      startAmount = parseFloat(amountInput.value);
+      duration = parseFloat(durationInput.value);
+
+      if (isNaN(startAmount) || isNaN(duration) || startAmount <= 0 || duration <= 0) {
+        alert("Enter valid positive values for both amount and duration!");
+        return;
+      }
+
+      startTime = Date.now();
+      paused = false;
+      elapsedPaused = 0;
+
+      if (interval) clearInterval(interval);
+      interval = setInterval(updateAuction, 50);
+    }
+
+    function updateAuction() {
+      if (paused) return;
+
+      const elapsed = (Date.now() - startTime - elapsedPaused) / 1000;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const currentPrice = Math.max(0, startAmount * (1 - progress));
+      priceDisplay.textContent = `$${currentPrice.toFixed(2)}`;
+
+      // Hand starts at 12 (0°) and completes full 360° clockwise
+      const rotation = 360 * progress;
+      hand.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
+
+      if (progress >= 1) {
+        clearInterval(interval);
+      }
+    }
+
+    function pauseAuction() {
+      if (!paused) {
+        paused = true;
+        pauseStart = Date.now();
+      } else {
+        paused = false;
+        elapsedPaused += Date.now() - pauseStart;
+      }
+    }
+
+    function resetAuction() {
+      clearInterval(interval);
+      priceDisplay.textContent = "$0.00";
+      hand.style.transform = "translate(-50%, -100%) rotate(0deg)";
+      startAmount = 0;
+      duration = 0;
+      paused = false;
+    }
+
+    document.getElementById("startBtn").addEventListener("click", startAuction);
+    document.getElementById("pauseBtn").addEventListener("click", pauseAuction);
+    document.getElementById("resetBtn").addEventListener("click", resetAuction);
+  </script>
+</body>
+</html>
